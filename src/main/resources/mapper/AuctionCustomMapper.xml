@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.gyk.myauction.mapper.AuctionCustomMapper" >
+
+    <resultMap type="com.gyk.myauction.entity.Auction" id="auctionAndRecordListMap">
+        <id column="auctionId" property="auctionid" />
+        <result column="auctionName" property="auctionname"  />
+        <result column="auctionStartPrice" property="auctionstartprice" />
+        <result column="auctionUpset" property="auctionupset" />
+        <result column="auctionStartTime" property="auctionstarttime"  />
+        <result column="auctionEndTime" property="auctionendtime"  />
+        <result column="auctionPic" property="auctionpic" />
+        <result column="auctionPicType" property="auctionpictype"  />
+        <result column="auctionDesc" property="auctiondesc" />
+        <!-- collection – 一个复杂类型的集合 -->
+        <collection property="auctionrecordList" ofType="com.gyk.myauction.entity.Auctionrecord">
+            <id column="record_id" property="id" />
+            <result column="record_user_id" property="userid"  />
+            <result column="record_auction_id" property="auctionid"  />
+            <result column="auctionTime" property="auctiontime"  />
+            <result column="auctionPrice" property="auctionprice"  />
+            <!-- 一个复杂类型的关联；许多结果将包装成这种类型-->
+            <association property="user" javaType="com.gyk.myauction.entity.Auctionuser">
+                <id column="record_user_id" property="userid" />
+                <result column="userName" property="username" />
+            </association>
+        </collection>
+    </resultMap>
+
+    <select id="findAuctionAndRecordListById" resultMap="auctionAndRecordListMap">
+        SELECT auction.*,
+               auctionrecord.id record_id,
+               auctionrecord.userId record_user_id,
+               auctionrecord.auctionId record_auction_id,
+               auctionrecord.auctionTime,
+               auctionrecord.auctionPrice,
+               auctionuser.userName
+        FROM auction
+                 LEFT OUTER JOIN auctionrecord ON auction.auctionId=auctionrecord.auctionId
+                 LEFT OUTER JOIN auctionuser ON auctionuser.userId=auctionrecord.userId
+        WHERE auction.auctionId=#{id}
+        ORDER BY auctionrecord.auctionPrice DESC
+    </select>
+
+    <select id="findAuctionEndTime" resultType="com.gyk.myauction.entity.AuctionCustom">
+        SELECT
+        auction.auctionname,
+        auction.auctionstarttime,
+        auction.auctionendtime,
+        auction.auctionstartprice,
+        auctionrecord.auctionprice,
+        auctionuser.username
+        FROM
+        auction,auctionrecord,auctionuser
+        WHERE
+        auction.auctionid=auctionrecord.auctionid
+        AND auctionrecord.userid=auctionuser.userid
+        AND auction.auctionendtime <![CDATA[<]]> NOW()
+        AND auctionrecord.auctionprice=
+        (SELECT MAX(r.auctionprice) FROM auctionrecord r
+        WHERE r.auctionid=auction.auctionid)
+    </select>
+
+    <select id="findAuctionNoEndTime" resultMap="auctionAndRecordListMap">
+        SELECT auction.*,
+               auctionrecord.id record_id,
+               auctionrecord.userId record_user_id,
+               auctionrecord.auctionId record_auction_id,
+               auctionrecord.auctionTime,
+               auctionrecord.auctionPrice,
+               auctionuser.userName
+        FROM
+            auction,auctionrecord,auctionuser
+        WHERE
+            auction.auctionid=auctionrecord.auctionid
+          AND auctionrecord.userid=auctionuser.userid
+          AND auction.auctionendtime>NOW()
+    </select>
+</mapper>
